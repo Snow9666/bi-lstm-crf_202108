@@ -1,4 +1,6 @@
 from os import mkdir
+
+import torch
 from tqdm import tqdm
 import pandas as pd
 import numpy as np
@@ -7,13 +9,13 @@ from torch.utils.data import TensorDataset, DataLoader
 from bi_lstm_crf.app.preprocessing import *
 from bi_lstm_crf.app.utils import *
 
-
 def __eval_model(model, device, dataloader, desc):
     model.eval()
     with torch.no_grad():
         # eval
+        # MDF
         losses, nums = zip(*[
-            (model.loss(xb.to(device), yb.to(device)), len(xb))
+            (model.loss(xb.to(device), yb.to(device)).cpu(), len(xb))
             for xb, yb in tqdm(dataloader, desc=desc)])
         return np.sum(np.multiply(losses, nums)) / np.sum(nums)
 
@@ -29,6 +31,7 @@ def __save_model(model_dir, model):
 
 
 def train(args):
+    # 设置路径
     model_dir = args.model_dir
     if not exists(model_dir):
         mkdir(model_dir)
@@ -51,6 +54,7 @@ def train(args):
     optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
 
     device = running_device(args.device)
+    print(f'The device is {device}')
     model.to(device)
 
     val_loss = 0
@@ -93,8 +97,11 @@ def train(args):
 def main():
     import argparse
     parser = argparse.ArgumentParser()
+    # parser.add_argument('corpus_dir', type=str, help="the corpus directory")
+    # parser.add_argument('--model_dir', type=str, default="model_dir", help="the output directory for model files")
+    #MDF
     parser.add_argument('corpus_dir', type=str, help="the corpus directory")
-    parser.add_argument('--model_dir', type=str, default="model_dir", help="the output directory for model files")
+    parser.add_argument('--model_dir', type=str, default="model_xxx", help="the output directory for model files")
 
     parser.add_argument('--num_epoch', type=int, default=20, help="number of epoch to train")
     parser.add_argument('--lr', type=float, default=1e-3, help='learning rate')
